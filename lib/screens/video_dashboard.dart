@@ -21,12 +21,17 @@ class _VideoDashboardState extends State<VideoDashboard> {
   @override
   void initState() {
     super.initState();
+    // Force landscape mode immediately
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _initWebViewController();
   }
 
   @override
   void dispose() {
-    // Reset system UI when leaving the player
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -60,65 +65,38 @@ class _VideoDashboardState extends State<VideoDashboard> {
     _webViewController
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
-      ..addJavaScriptChannel(
-        'FullScreenChannel',
-        onMessageReceived: (JavaScriptMessage message) {
-          if (message.message == 'enter') {
-            SystemChrome.setPreferredOrientations([
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
-            ]);
-            SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-          } else if (message.message == 'exit') {
-            SystemChrome.setPreferredOrientations([
-              DeviceOrientation.portraitUp,
-            ]);
-            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-            
-            Future.delayed(const Duration(milliseconds: 500), () {
-              SystemChrome.setPreferredOrientations([
-                DeviceOrientation.portraitUp,
-                DeviceOrientation.landscapeLeft,
-                DeviceOrientation.landscapeRight,
-              ]);
-            });
-          }
-        },
-      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) => setState(() => _isLoading = true),
           onPageFinished: (String url) {
             setState(() => _isLoading = false);
-            _injectFullScreenListener();
-          },
-          onWebResourceError: (WebResourceError error) {
-            debugPrint("WebView Error: ${error.description}");
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            final url = request.url;
-            if (url.contains('vidara.to') || 
-                url.contains('jwplayer') || 
-                url.contains('jnbhi.com') ||
-                url == 'about:blank') {
-              return NavigationDecision.navigate;
-            }
-            return NavigationDecision.prevent;
+            _injectCSS();
           },
         ),
       )
       ..loadRequest(Uri.parse(_videoEmbedUrl));
   }
 
-  void _injectFullScreenListener() {
+  void _injectCSS() {
     const String jsCode = '''
       (function() {
-        document.addEventListener('fullscreenchange', () => {
-          window.FullScreenChannel.postMessage(!!document.fullscreenElement ? 'enter' : 'exit');
-        });
-        document.addEventListener('webkitfullscreenchange', () => {
-          window.FullScreenChannel.postMessage(!!document.webkitFullscreenElement ? 'enter' : 'exit');
-        });
+        const style = document.createElement('style');
+        style.innerHTML = `
+          .jw-icon-pip, [aria-label="Picture-in-Picture"], .jw-settings-pip { 
+            display: none !important; 
+          }
+          .jw-display-icon-container .jw-icon {
+            transform: scale(0.6) !important;
+          }
+          .jw-title {
+            display: block !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            padding: 10px 15px !important;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+          }
+        `;
+        document.head.appendChild(style);
       })();
     ''';
     _webViewController.runJavaScript(jsCode);
@@ -128,23 +106,12 @@ class _VideoDashboardState extends State<VideoDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: OrientationBuilder(
-        builder: (context, orientation) {
-          final isLandscape = orientation == Orientation.landscape;
-          
-          return SafeArea(
-            // Apply SafeArea to prevent nav bar/status bar overlap
-            top: !isLandscape,
-            bottom: !isLandscape,
-            child: Stack(
-              children: [
-                WebViewWidget(controller: _webViewController),
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator(color: VidaraTheme.primary)),
-              ],
-            ),
-          );
-        },
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _webViewController),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator(color: VidaraTheme.primary)),
+        ],
       ),
     );
   }
