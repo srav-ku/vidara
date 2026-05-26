@@ -97,10 +97,15 @@ class _VideoDashboardState extends State<VideoDashboard> {
           }
           @media (orientation: landscape) {
             .jw-title {
-              font-size: 12px !important;
-              font-weight: 400 !important;
+              font-size: 13px !important;
+              font-weight: 300 !important;
+              letter-spacing: 0.8px !important;
+              color: rgba(255, 255, 255, 0.85) !important;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+              padding: 20px 25px !important;
+              transition: opacity 0.25s ease-in-out !important;
               opacity: 1 !important;
-              transition: opacity 0.3s ease-in-out !important;
+              display: block !important;
             }
             .jw-flag-user-inactive .jw-title {
               opacity: 0 !important;
