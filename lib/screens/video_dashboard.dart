@@ -95,6 +95,18 @@ class _VideoDashboardState extends State<VideoDashboard> {
             padding: 10px 15px !important;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
           }
+          @media (orientation: landscape) {
+            .jw-title {
+              font-size: 12px !important;
+              font-weight: 400 !important;
+              opacity: 1 !important;
+              transition: opacity 0.3s ease-in-out !important;
+            }
+            .jw-flag-user-inactive .jw-title {
+              opacity: 0 !important;
+              pointer-events: none !important;
+            }
+          }
         `;
         document.head.appendChild(style);
       })();
